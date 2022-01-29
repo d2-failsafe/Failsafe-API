@@ -1,18 +1,14 @@
 import enum
-import typing
 from json import JSONDecodeError
+from typing import Any, Dict, Optional
 
 import httpx
 from pyrate_limiter import Limiter, Duration, RequestRate
 
-from utils.ua import get_ua
-from utils.enums import RequestMethods
-from utils.exceptions import APIError, APICallFailed
-
+from ...utils.ua import get_ua
+from ...utils.enums import RequestMethods
 from .models.manifest import Manifest
-
-if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Optional
+from ...utils.exceptions import APIError, APICallFailed
 
 limiter = Limiter(RequestRate(1, Duration.SECOND))
 

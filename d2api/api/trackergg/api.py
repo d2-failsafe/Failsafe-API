@@ -1,14 +1,10 @@
-import typing
 import asyncio
 from json import JSONDecodeError
+from typing import Any, Dict, List, Union, Optional
 from urllib.parse import quote
 
 import httpx
 from pyrate_limiter import Limiter, Duration, RequestRate
-
-from utils.ua import get_ua
-from utils.enums import RequestMethods
-from utils.exceptions import APIError, APICallFailed
 
 from .models import (
     ID,
@@ -20,9 +16,9 @@ from .models import (
     PlayerProfile,
     PVPRatingHistory,
 )
-
-if typing.TYPE_CHECKING:
-    from typing import Any, Dict, List, Union, Optional
+from ...utils.ua import get_ua
+from ...utils.enums import RequestMethods
+from ...utils.exceptions import APIError, APICallFailed
 
 limiter = Limiter(RequestRate(15, Duration.MINUTE))
 
