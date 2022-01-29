@@ -57,12 +57,6 @@ class API:
 
         return resp
 
-    async def close(self):
-        await self.client.aclose()
-
-    def __del__(self):
-        self.loop.run_until_complete(self.close())
-
     async def get_destiny_manifest(self) -> Manifest:
         resp = await self.call(RequestMethods.GET, "/Destiny2/Manifest/")
         return Manifest(**resp)
