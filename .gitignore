@@ -115,13 +115,4 @@ dmypy.json
 .pyre/
 
 # My Own Config
-configs/config.py
-data/data.db
-temp*.jpg
-temp*.png
-temp*.gif
-temp*.html
-resources/**/temp/*
-data/*.db-*
-data/data.db.old
-data/backups/*
+test.py

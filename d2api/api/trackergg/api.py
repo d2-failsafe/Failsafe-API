@@ -1,3 +1,4 @@
+import time
 import asyncio
 from json import JSONDecodeError
 from typing import Any, Dict, List, Union, Optional
@@ -24,9 +25,8 @@ limiter = Limiter(RequestRate(15, Duration.MINUTE))
 
 
 class BaseAPI:
-    def __init__(self, id: str, **kwargs) -> None:
-        self.client = httpx.AsyncClient(**kwargs)
-        self.id = asyncio.run(self.get_id(id))[0].platformUserIdentifier
+    def __init__(self) -> None:
+        self.header = {"user-agent": get_ua()}
 
     async def call(
         self,
@@ -35,12 +35,12 @@ class BaseAPI:
         params: Optional[Dict[Any, Any]] = None,
         **kwargs,
     ) -> Dict[Any, Any]:
-        async with self.client as client:
-            header = {
-                "User-Agent": get_ua(),
-                "origin": "https://destinytracker.com",
-                "referer": "https://destinytracker.com/",
-            }
+        header = {
+            "User-Agent": get_ua(),
+            "origin": "https://destinytracker.com",
+            "referer": "https://destinytracker.com/",
+        }
+        async with httpx.AsyncClient(headers=self.header) as client:
             response = await client.request(
                 method, url, params=params, headers=header, **kwargs
             )
@@ -56,6 +56,8 @@ class BaseAPI:
             )
         return resp["data"]
 
+
+class Profile(BaseAPI):
     async def get_id(self, id: str, platform: str = "bungie") -> List[ID]:
         """
         :说明: `get_id`
@@ -75,9 +77,7 @@ class BaseAPI:
         data = await self.call(RequestMethods.GET, url, params=params)
         return [ID(**d) for d in data]
 
-
-class Profile(BaseAPI):
-    async def get_profile(self) -> PlayerProfile:
+    async def get_profile(self, id: Union[int, str]) -> PlayerProfile:
         """
         :说明: `get_profile`
         > 获取玩家档案
@@ -88,13 +88,11 @@ class Profile(BaseAPI):
         :返回:
           - `PlayerProfile`: 玩家档案
         """
-        url = (
-            f"https://api.tracker.gg/api/v2/destiny-2/standard/profile/bungie/{self.id}"
-        )
+        url = f"https://api.tracker.gg/api/v2/destiny-2/standard/profile/bungie/{id}"
         data = await self.call(RequestMethods.GET, url)
         return PlayerProfile(**data)
 
-    async def get_sessions(self) -> Sessions:
+    async def get_sessions(self, id: Union[int, str]) -> Sessions:
         """
         :说明: `get_sessions`
         > 获取玩家登录记录
@@ -105,11 +103,11 @@ class Profile(BaseAPI):
         :返回:
           - `Sessions`: 玩家登录记录
         """
-        url = f"https://api.tracker.gg/api/v2/destiny-2/standard/profile/bungie/{self.id}/sessions"
+        url = f"https://api.tracker.gg/api/v2/destiny-2/standard/profile/bungie/{id}/sessions"
         data = await self.call(RequestMethods.GET, url)
         return Sessions(**data)
 
-    async def get_character(self) -> List[Character]:
+    async def get_character(self, id: Union[int, str]) -> List[Character]:
         """
         :说明: `get_character`
         > 获取玩家人物信息
@@ -120,13 +118,13 @@ class Profile(BaseAPI):
         :返回:
           - `List[Character]`: 人物信息列表
         """
-        url = f"https://api.tracker.gg/api/v1/destiny-2/stats/characters/17/{self.id}"
+        url = f"https://api.tracker.gg/api/v1/destiny-2/stats/characters/17/{id}"
         data = await self.call(RequestMethods.GET, url)
         return [Character(**d) for d in data]
 
 
 class PVP(BaseAPI):
-    async def get_pvp_weapon(self) -> List[PVPWeapon]:
+    async def get_pvp_weapon(self, id: Union[int, str]) -> List[PVPWeapon]:
         """
         :说明: `get_pvp_weapon`
         > 获取玩家近30天内PVP武器击杀情况
@@ -142,7 +140,7 @@ class PVP(BaseAPI):
         data = await self.call(RequestMethods.GET, url, params=params)
         return [PVPWeapon(**d) for d in data]
 
-    async def get_pvp_season(self, season: int) -> List[PVPSeason]:
+    async def get_pvp_season(self, id: Union[int, str], season: int) -> List[PVPSeason]:
         """
         :说明: `get_pvp_season`
         > 获取玩家赛季表现
@@ -154,12 +152,12 @@ class PVP(BaseAPI):
         :返回:
           - `List[PVPSeason]`: 赛季各PVP活动表现列表
         """
-        url = f"https://api.tracker.gg/api/v2/destiny-2/standard/profile/bungie/{self.id}/segments/playlist"
+        url = f"https://api.tracker.gg/api/v2/destiny-2/standard/profile/bungie/{id}/segments/playlist"
         params = {"season": season}
         data = await self.call(RequestMethods.GET, url, params=params)
         return [PVPSeason(**d) for d in data]
 
-    async def get_pvp_history(self) -> PVPHistory:
+    async def get_pvp_history(self, id: Union[int, str]) -> PVPHistory:
         """
         :说明: `get_pvp_history`
         > 获取玩家最近50场PVP记录
@@ -170,11 +168,11 @@ class PVP(BaseAPI):
         :返回:
           - `PVPHistory`: PVP历史记录
         """
-        url = f"https://api.tracker.gg/api/v2/destiny-2/standard/profile/bungie/{self.id}/sessions?perspective=pvp"
+        url = f"https://api.tracker.gg/api/v2/destiny-2/standard/profile/bungie/{id}/sessions?perspective=pvp"
         data = await self.call(RequestMethods.GET, url)
         return PVPHistory(**data)
 
-    async def get_pvp_ratinghistory(self) -> PVPRatingHistory:
+    async def get_pvp_ratinghistory(self, id: Union[int, str]) -> PVPRatingHistory:
         """
         :说明: `get_pvp_ratinghistory`
         > 获取玩家30天内PVP评级和KD变化
@@ -185,7 +183,7 @@ class PVP(BaseAPI):
         :返回:
           - `PVPRatingHistory`: PVP评级和KD变化
         """
-        url = f"https://api.tracker.gg/api/v2/destiny-2/standard/profile/bungie/{self.id}/history"
+        url = f"https://api.tracker.gg/api/v2/destiny-2/standard/profile/bungie/{id}/history"
         data = await self.call(RequestMethods.GET, url)
         return PVPRatingHistory(**data)
 
@@ -202,7 +200,7 @@ class Database(BaseAPI):
     pass
 
 
-class API(PlayerProfile, PVP, PVE, Database):
+class API(Profile, PVP, PVE, Database):
     """整合各个API"""
 
     pass

@@ -1,4 +1,5 @@
 import enum
+import asyncio
 from json import JSONDecodeError
 from typing import Any, Dict, Optional
 
@@ -20,9 +21,9 @@ class URL(str, enum.Enum):
 
 
 class API:
-    def __init__(self, api_key: str, **kwargs) -> None:
-        headers = {"X-API-Key": api_key, "User-Agent": get_ua()}
-        self.client = httpx.AsyncClient(headers=headers, **kwargs)
+    def __init__(self, api_key: str) -> None:
+        self.headers = {"X-API-Key": api_key, "User-Agent": get_ua()}
+        self.loop = asyncio.get_event_loop()
 
     @limiter.ratelimit(delay=True)
     async def call(
@@ -32,7 +33,7 @@ class API:
         params: Optional[Dict[Any, Any]] = None,
         **kwargs,
     ) -> Dict[Any, Any]:
-        async with self.client as client:
+        async with httpx.AsyncClient(headers=self.headers) as client:
             response = await client.request(
                 method, URL.API + path, params=params, **kwargs
             )
@@ -55,6 +56,12 @@ class API:
             )
 
         return resp
+
+    async def close(self):
+        await self.client.aclose()
+
+    def __del__(self):
+        self.loop.run_until_complete(self.close())
 
     async def get_destiny_manifest(self) -> Manifest:
         resp = await self.call(RequestMethods.GET, "/Destiny2/Manifest/")
